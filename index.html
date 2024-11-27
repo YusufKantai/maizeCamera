@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maize Leaf Disease Detection</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Maize Leaf Disease Detection Using CNN</h1>
+                  
+        <!-- Error Message Display -->
+        {% if error %}
+        <div class="error-message">
+            {{ error }}
+        </div>
+        {% endif %}
+        
+        <div class="index">
+            <form id="uploadForm" method="POST" action="/predict" enctype="multipart/form-data">
+                <!-- File Upload Input -->
+                <div class="upload-options">
+                    <input type="file" 
+                           name="image" 
+                           id="fileInput" 
+                           accept=".jpg, .jpeg, .png" 
+                           class="upload" 
+                           capture="environment"/>
+                    
+                    <!-- Camera Capture Button -->
+                    <button type="button" id="captureButton" class="camera-btn">
+                        📷 Capture Photo
+                    </button>
+                </div>
+
+                <!-- Hidden Video and Canvas for Camera Capture -->
+                <div class="camera-container" style="display:none;">
+                    <video id="videoFeed" width="320" height="240" autoplay></video>
+                    <canvas id="captureCanvas" style="display:none;"></canvas>
+                </div>
+
+                <!-- Hidden input for captured image -->
+                <input type="hidden" name="captured_image" id="capturedImage">
+
+                <button type="submit" id="predictButton" style="display:none;">Predict Disease</button>
+            </form>
+        </div>
+
+        <!-- results -->
+        {% if result %}
+        <div class="result">
+            <img src="{{ url_for('uploaded_file', filename=result['image']) }}" alt="Uploaded Image"/>
+            <div class="output">
+                <p>The uploaded image shows <strong>{{ result['disease'] }}</strong>.</p>
+                <strong>Course:</strong>
+                <p>{{ result['course'] }}</p>
+                <strong>Control Measures:</strong>
+                <p>{{ result['control_measure'] }}</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const fileInput = document.getElementById('fileInput');
+        const captureButton = document.getElementById('captureButton');
+        const videoFeed = document.getElementById('videoFeed');
+        const captureCanvas = document.getElementById('captureCanvas');
+        const predictButton = document.getElementById('predictButton');
+        const uploadForm = document.getElementById('uploadForm');
+        const capturedImageInput = document.getElementById('capturedImage');
+
+        // File Selection Handler
+        fileInput.addEventListener('change', function() {
+            predictButton.style.display = this.files.length > 0 ? 'block' : 'none';
+        });
+
+        // Capture Photo Button
+        captureButton.addEventListener('click', function() {
+            // Request camera access
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+                .then(function(stream) {
+                    videoFeed.srcObject = stream;
+                    videoFeed.parentElement.style.display = 'block';
+                    captureButton.textContent = '📸 Take Photo';
+                    captureButton.onclick = capturePhoto;
+                })
+                .catch(function(err) {
+                    alert('Error accessing camera: ' + err);
+                });
+        });
+
+        function capturePhoto() {
+            // Capture photo from video feed
+            captureCanvas.width = videoFeed.videoWidth;
+            captureCanvas.height = videoFeed.videoHeight;
+            captureCanvas.getContext('2d').drawImage(videoFeed, 0, 0);
+
+            // Stop video stream
+            videoFeed.srcObject.getTracks().forEach(track => track.stop());
+            videoFeed.parentElement.style.display = 'none';
+
+            // Convert canvas to base64 image
+            const imageDataUrl = captureCanvas.toDataURL('image/jpeg');
+            
+            // Create a file from base64
+            fetch(imageDataUrl)
+                .then(res => res.blob())
+                .then(blob => {
+                    const file = new File([blob], 'captured_image.jpg', { type: 'image/jpeg' });
+                    
+                    // Create a new FileList
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    fileInput.files = dataTransfer.files;
+                    
+                    // Show predict button
+                    predictButton.style.display = 'block';
+                    captureButton.textContent = '📷 Capture Photo';
+                });
+        }
+    });
+    </script>
+</body>
+</html>

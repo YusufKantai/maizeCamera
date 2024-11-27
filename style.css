@@ -1,0 +1,157 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f4;
+  background-image: url('/static/Background.jpg');
+  background-repeat: no-repeat;
+  background-size: cover;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.container {
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 15px;
+  padding: 30px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  max-width: 600px;
+  width: 100%;
+  text-align: center;
+}
+
+h1 {
+  color: #0066cc;
+  margin-bottom: 20px;
+  font-size: 2.5rem;
+}
+
+.index {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.upload {
+  width: 100%;
+  max-width: 500px;
+  margin-bottom: 20px;
+  padding: 10px;
+  border: 3px solid #2d2f31;
+  border-radius: 10px;
+  font-size: 16px;
+}
+
+::-webkit-file-upload-button {
+  background-color: #c90606;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 15px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+::-webkit-file-upload-button:hover {
+  background-color: #a50505;
+}
+
+button {
+  background-color: #1fb9be;
+  color: black;
+  border: 4px solid #1fb9be;
+  border-radius: 15px;
+  padding: 15px 35px;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+button:hover {
+  background-color: #17a0a5;
+  border-color: #17a0a5;
+}
+
+.result {
+  margin-top: 20px;
+}
+
+.result img {
+  max-width: 100%;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+.output {
+  background-color: #f9f9f9;
+  border-radius: 10px;
+  padding: 20px;
+  text-align: left;
+}
+
+.output strong {
+  color: #0066cc;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.output p {
+  margin-bottom: 15px;
+}
+
+
+/* Existing styles remain the same, add these new styles */
+.upload-options {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  width: 100%;
+}
+
+.camera-btn {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.camera-btn:hover {
+  background-color: #45a049;
+}
+
+.camera-container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.camera-container video {
+  max-width: 100%;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+
+.error-message {
+  background-color: #ffdddd;
+  border: 1px solid #ff0000;
+  color: #ff0000;
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 5px;
+  text-align: center;
+}
