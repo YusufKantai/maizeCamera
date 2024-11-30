@@ -1,12 +1,9 @@
 import os
 import cv2
 import numpy as np
-import base64
+import tensorflow as tf
 from flask import Flask, render_template, request, send_from_directory
 from werkzeug.utils import secure_filename
-from keras.models import load_model
-import io
-from PIL import Image
 
 app = Flask(__name__)
 
@@ -14,19 +11,22 @@ app = Flask(__name__)
 UPLOAD_FOLDER = "static/images"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
-# Loading the model
-model = load_model("MaizeTOday.h5")
+# Path to the saved model directory
+MODEL_DIR = r"C:\projects\maize - Copy\converted_savedmodel (1)\model.savedmodel"
 
-# Name of Classes
-CLASS_NAMES = [
-    "Common_Rust",
-    "Gray_Leaf_Spot",
-    "Healthy",
-    "Northern_Leaf_Blight",
-]
+# Loading the TensorFlow model
+model = tf.saved_model.load(MODEL_DIR)
 
-# Name of Classes and corresponding information
+# Load the class names from labels.txt
+with open("labels.txt", "r") as f:
+    CLASS_NAMES = [line.strip() for line in f]
+
+# Define corresponding information for each class
 CLASS_INFO = {
+    "Blight": {
+        "course": "Blight is a group of diseases affecting maize leaves.",
+        "control_measure": "Use resistant varieties and practice proper field sanitation.",
+    },
     "Common_Rust": {
         "course": "Common Rust is a fungal disease that affects maize leaves.",
         "control_measure": "Apply fungicides and practice crop rotation.",
@@ -36,12 +36,8 @@ CLASS_INFO = {
         "control_measure": "Use resistant varieties and practice proper field sanitation.",
     },
     "Healthy": {
-        "course": "The maize plant appears healthy with no visible signs of disease.",
-        "control_measure": "Continue good agricultural practices and monitor regularly.",
-    },
-    "Northern_Leaf_Blight": {
-        "course": "Northern Leaf Blight is a fungal disease affecting maize plants.",
-        "control_measure": "Use resistant maize varieties and practice crop rotation.",
+        "course": "The maize plant is healthy with no visible signs of disease.",
+        "control_measure": "Maintain good agricultural practices and monitor for pests.",
     },
 }
 
@@ -51,60 +47,54 @@ def home():
 
 @app.route("/predict", methods=["POST"])
 def predict():
-    try:
-        # Check for file upload
-        if "image" not in request.files and "captured_image" not in request.form:
+    if request.method == "POST":
+        if "image" not in request.files:
             return "No file part"
         
-        # Process uploaded file
-        if "image" in request.files and request.files["image"].filename:
-            file = request.files["image"]
+        file = request.files["image"]
+        if file.filename == "":
+            return "No selected file"
+        
+        if file:
             filename = secure_filename(file.filename)
             file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
             file.save(file_path)
-        
-        # Process captured image (base64)
-        elif "captured_image" in request.form:
-            # Decode base64 image
-            base64_image = request.form["captured_image"].split(",")[1]
-            image_bytes = base64.b64decode(base64_image)
-            image = Image.open(io.BytesIO(image_bytes))
             
-            # Save the image
-            filename = "captured_image.jpg"
-            file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-            image.save(file_path)
-        
-        # Read the uploaded image
-        opencv_image = cv2.imread(file_path)
-        opencv_image = cv2.cvtColor(opencv_image, cv2.COLOR_BGR2RGB)
-        opencv_image = cv2.resize(opencv_image, (256, 256))
-        opencv_image = np.expand_dims(opencv_image, axis=0)
-        
-        # Make prediction
-        Y_pred = model.predict(opencv_image)
-        predicted_class = np.argmax(Y_pred)
-        predicted_class_name = CLASS_NAMES[predicted_class]
-        
-        # Safely get class info with default
-        class_info = CLASS_INFO.get(predicted_class_name, {
-            "course": "Unable to determine specific details.",
-            "control_measure": "Consult with an agricultural expert for further guidance."
-        })
-        
-        result = {
-            "disease": predicted_class_name,
-            "course": class_info["course"],
-            "control_measure": class_info["control_measure"],
-            "image": filename,
-        }
-        
-        return render_template("index.html", result=result)
-    
-    except Exception as e:
-        # Log the error (you might want to use proper logging in production)
-        print(f"An error occurred: {str(e)}")
-        return render_template("index.html", error="An error occurred while processing the image.")
+            # Read and preprocess the uploaded image
+            opencv_image = cv2.imread(file_path)
+            opencv_image = cv2.cvtColor(opencv_image, cv2.COLOR_BGR2RGB)
+            
+            # Resize the image to 224x224 (model's expected input size)
+            opencv_image = cv2.resize(opencv_image, (224, 224))  # Resize to 224x224
+            
+            # Normalize the image to [0, 1]
+            opencv_image = opencv_image / 255.0
+            
+            # Convert the image to float32 (as expected by the model)
+            opencv_image = np.expand_dims(opencv_image, axis=0).astype(np.float32)
+            
+            # Run the TensorFlow model
+            predictions = model(opencv_image)
+            
+            # Get the predicted class index and the confidence for each class
+            confidences = predictions.numpy().flatten() * 100  # Convert to percentages
+            predicted_class = np.argmax(confidences)
+            
+            # Format the confidences as a list of tuples (class_name, confidence_percentage)
+            class_confidences = [
+                (CLASS_NAMES[i], round(confidences[i], 2)) for i in range(len(CLASS_NAMES))
+            ]
+            
+            result = {
+                "disease": CLASS_NAMES[predicted_class],
+                "course": CLASS_INFO[CLASS_NAMES[predicted_class]]["course"],
+                "control_measure": CLASS_INFO[CLASS_NAMES[predicted_class]]["control_measure"],
+                "image": filename,
+                "confidence": round(confidences[predicted_class], 2),  # Confidence for the predicted class
+                "class_confidences": class_confidences,  # Confidence for all classes
+            }
+            
+            return render_template("index.html", result=result)
 
 @app.route("/static/images/<filename>")
 def uploaded_file(filename):

@@ -9,7 +9,7 @@
 <body>
     <div class="container">
         <h1>Maize Leaf Disease Detection Using CNN</h1>
-                  
+        
         <!-- Error Message Display -->
         {% if error %}
         <div class="error-message">
@@ -57,6 +57,13 @@
                 <p>{{ result['course'] }}</p>
                 <strong>Control Measures:</strong>
                 <p>{{ result['control_measure'] }}</p>
+
+                <h3>Confidence for All Classes:</h3>
+                <ul>
+                    {% for class_name, confidence in result['class_confidences'] %}
+                        <li>{{ class_name }}: {{ confidence }}%</li>
+                    {% endfor %}
+                </ul>
             </div>
         </div>
         {% endif %}
